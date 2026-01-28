@@ -34,6 +34,7 @@ def normalize_clip(x):
 
 @torch.no_grad()
 def evaluate(model, loader):
+    print("Evaluating...")
     model.eval()
     total, correct = 0, 0
     for xb, yb in loader:
@@ -44,11 +45,14 @@ def evaluate(model, loader):
         preds = logits.argmax(dim=1)
         total += yb.size(0)
         correct += (preds == yb).sum().item()
+        print(f"Processed {total} samples...", end='\r')
+    print("Evaluation done.")
     return correct / max(total, 1)
 
 # Training
 def train(model, train_loader, val_loader, epochs=20):
     best_acc = 0.0
+    print("Starting training...")
     for epoch in range(1, epochs+1):
         model.train()
         running_loss = 0.0
@@ -73,7 +77,7 @@ def train(model, train_loader, val_loader, epochs=20):
         # Save best
         if val_acc > best_acc:
             best_acc = val_acc
-            torch.save(model.state_dict(), 'best_r3d18_depthmaps_10.pt')
+            torch.save(model.state_dict(), 'best_r3d18_depthmaps_full.pt')
             print(f"Saved new best (acc={best_acc:.4f})")
 
 

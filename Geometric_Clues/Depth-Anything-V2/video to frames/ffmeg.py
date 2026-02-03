@@ -1,33 +1,3 @@
-
-
-# import cv2, os, math
-
-# def save_frames_at_fps(video_path, output_dir, target_fps):
-#     os.makedirs(output_dir, exist_ok=True)
-#     cap = cv2.VideoCapture(video_path)
-#     if not cap.isOpened():
-#         raise RuntimeError("Could not open video")
-#     src_fps = cap.get(cv2.CAP_PROP_FPS)
-#     if not src_fps or src_fps <= 0:
-#         src_fps = 30.0  # fallback
-#     frame_idx = 0
-#     out_idx = 0
-#     next_time = 0.0
-#     while True:
-#         ok, frame = cap.read()
-#         if not ok:
-#             break
-#         t = frame_idx / src_fps
-#         if t + 1e-9 >= next_time:
-#             cv2.imwrite(os.path.join(output_dir, f"frame_{out_idx:05d}.jpg"), frame)
-#             out_idx += 1
-#             next_time += 1.0 / target_fps
-#         frame_idx += 1
-#     cap.release()
-
-# if __name__ == "__main__":
-#     save_frames_at_fps("5.mp4", "frames_out", target_fps=4)
-
 import cv2, os
 from pathlib import Path
 

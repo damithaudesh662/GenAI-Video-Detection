@@ -96,7 +96,9 @@ assets/
 test/
 test 1/
 test 2/
-
+ai/
+3d_cnn/__pycache__
+3d_cnn/dataset/train-val-dataset
 # -------------------------
 # Videos & Images
 # -------------------------
@@ -109,6 +111,7 @@ test 2/
 *.jpeg
 *.png
 *.bmp
+*.pth
 
 # -------------------------
 # System / IDE Files

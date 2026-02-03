@@ -63,4 +63,4 @@ def batch_process(root="real", out_root="real_8s", min_keep=5.0, clip_len=8.0):
 if __name__ == "__main__":
     # Input videos in folder "real"
     # Output trimmed clips go to "real_8s"
-    batch_process(root="gen_ai", out_root="gen_ai_8s", min_keep=5.0, clip_len=8.0)
+    batch_process(root="videos", out_root="gen_ai_new", min_keep=5.0, clip_len=8.0)

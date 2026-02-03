@@ -76,4 +76,4 @@ def process_folder_real(root="gen_ai", target_fps=4):
         save_frames_at_fps(vid_path, str(out_dir), target_fps)
 
 if __name__ == "__main__":
-    process_folder_real(root="gen_ai", target_fps=4)
+    process_folder_real(root="ai", target_fps=4)

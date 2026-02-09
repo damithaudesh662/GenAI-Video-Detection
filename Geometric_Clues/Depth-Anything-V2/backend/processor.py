@@ -7,6 +7,8 @@ import numpy as np
 import cv2
 import shutil
 from pathlib import Path
+import matplotlib
+matplotlib.use('Agg') # Set non-interactive backend
 import matplotlib.pyplot as plt
 from concurrent.futures import ThreadPoolExecutor
 

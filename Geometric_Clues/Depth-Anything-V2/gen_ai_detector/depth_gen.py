@@ -204,7 +204,7 @@ def make_depthmaps(input_frames_dir, output_depth_dir):
         print(f"{img_path.name} → {out_path.name}")
         process_image(img_path, out_path)
 
-    print("✅ Depthmap generation complete!")
+    print("   Depthmap generation complete!")
 
 
 # --------------------------------------------------

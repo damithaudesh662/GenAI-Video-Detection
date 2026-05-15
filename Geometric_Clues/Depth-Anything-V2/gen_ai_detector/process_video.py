@@ -97,13 +97,13 @@ def process_video(video_file, t, fps, output_root="depthmaps"):
 
     output_root.mkdir(exist_ok=True)
 
-    print("✂ Cutting video...")
+    print("  Cutting video...")
     cut_video(video_file, temp_video, t)
 
-    print("🎞 Extracting frames...")
+    print("  Extracting frames...")
     extract_frames(temp_video, frame_dir, fps)
 
-    print("✅ Done!")
+    print("  Done!")
     print(f"Frames saved to: {frame_dir.resolve()}")
     
     

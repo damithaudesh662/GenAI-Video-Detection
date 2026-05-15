@@ -13,6 +13,7 @@ __pycache__/
 venv/
 env/
 .venv/
+depth/
 
 # Jupyter / IPython
 .ipynb_checkpoints/
@@ -85,6 +86,8 @@ dataset/real/*
 processed/
 */processed/
 
+Geometric_Clues/Depth-Anything-V2/dataset/
+
 fake images/
 # frames_output/
 graph/
@@ -137,3 +140,7 @@ dist/
 *.tar
 *.tar.gz
 
+# -------------------------
+# Fusion related files
+# -------------------------
+Geometric_Clues/Depth-Anything-V2/gen_ai_detector/extract_logits_depth.py

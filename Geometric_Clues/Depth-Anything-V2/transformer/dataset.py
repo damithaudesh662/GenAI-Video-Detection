@@ -21,7 +21,7 @@ class VideoDepthDataset(Dataset):
                 continue
             for vid_dir in class_dir.iterdir():
                 if vid_dir.is_dir():
-                    frames = sorted([p for p in vid_dir.iterdir() if p.suffix.lower() in {'.png', '.jpg', '.jpeg'}])
+                    frames = sorted([p for p in vid_dir.iterdir() if p.suffix.lower() in {'.png', '.jpg', '.jpeg', '.npz'}])
                     if len(frames) == 0:
                         continue
                     items.append({
@@ -54,14 +54,16 @@ class VideoDepthDataset(Dataset):
         return idxs
 
     def _load_frame(self, path):
-        img = cv2.imread(str(path), cv2.IMREAD_COLOR)  # BGR uint8
+        if str(path).endswith('.npz'):
+            depth = np.load(str(path))['depth'].astype(np.float32)  # H x W in [0, 1]
+            depth = cv2.resize(depth, (self.size, self.size), interpolation=cv2.INTER_AREA)
+            return np.stack([depth, depth, depth], axis=-1)  # H, W, 3
+
+        img = cv2.imread(str(path), cv2.IMREAD_COLOR)
         if img is None:
-            # fallback black
-            img = np.zeros((self.size, self.size, 3), dtype=np.uint8)
+            return np.zeros((self.size, self.size, 3), dtype=np.float32)
         img = cv2.resize(img, (self.size, self.size), interpolation=cv2.INTER_AREA)
-        # convert BGR->RGB and scale to [0,1]
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
-        return img
+        return cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
 
     def __getitem__(self, idx):
         item = self.items[idx]

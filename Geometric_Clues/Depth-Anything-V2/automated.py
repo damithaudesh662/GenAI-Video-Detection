@@ -26,6 +26,7 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
 from depth_anything_v2.dpt import DepthAnythingV2
+from config import CLIP_LEN_S, TARGET_FPS
 
 # ── Device ───────────────────────────────────────────────────────────────────
 DEVICE = (
@@ -57,8 +58,7 @@ model = model.to(DEVICE).eval()
 # ── Pipeline parameters ───────────────────────────────────────────────────────
 VIDEO_EXTS = {'.mp4', '.avi', '.mov', '.mkv', '.webm', '.m4v', '.wmv', '.flv'}
 MIN_KEEP_S = 5.0    # skip videos shorter than this (seconds)
-CLIP_LEN_S = 8.0    # trim to this duration (seconds)
-TARGET_FPS = 4      # frames to extract per second
+# CLIP_LEN_S and TARGET_FPS come from config.py
 FFPROBE    = 'ffprobe'
 FFMPEG     = 'ffmpeg'
 

@@ -19,6 +19,7 @@ sys.path.append(str(ROOT))
 # Import existing functional components
 from gen_ai_detector.process_video import process_video
 from depth_anything_v2.dpt import DepthAnythingV2
+from config import CLIP_LEN_S, TARGET_FPS, CLIP_FRAMES, FRAME_SIZE, sample_indices
 
 # --------------------------------------------------
 # CONFIGURATION
@@ -159,7 +160,7 @@ def process_single_video(video_path, model_path, output_dir):
 
     try:
         # 1. Process video (Extract frames)
-        process_video(video_path, t=5, fps=4, output_root=temp_dir)
+        process_video(video_path, t=CLIP_LEN_S, fps=TARGET_FPS, output_root=temp_dir)
         frame_dir, depth_dir = temp_dir / "frames", temp_dir / "depthmaps"
 
         # 2. Optimized Depth Generation
@@ -172,9 +173,12 @@ def process_single_video(video_path, model_path, output_dir):
         cam = GradCAM3D(classifier, target_layer)
 
         depth_frames = sorted([p for p in depth_dir.iterdir() if p.suffix.lower() in {'.png', '.jpg', '.jpeg'}])
-        if len(depth_frames) < 16: depth_frames += [depth_frames[-1]] * (16 - len(depth_frames))
-        
-        depth_imgs = [cv2.resize(cv2.cvtColor(cv2.imread(str(f)), cv2.COLOR_BGR2RGB), (112,112))/255.0 for f in depth_frames[:16]]
+        idxs = sample_indices(len(depth_frames))
+        depth_imgs = [
+            cv2.resize(cv2.cvtColor(cv2.imread(str(depth_frames[i])), cv2.COLOR_BGR2RGB),
+                       (FRAME_SIZE, FRAME_SIZE)) / 255.0
+            for i in idxs
+        ]
         clip = np.transpose(np.stack(depth_imgs, axis=0), (3,0,1,2))
         input_tensor = (torch.from_numpy(clip).unsqueeze(0).to(DEVICE).float() - MEAN) / STD
         input_tensor.requires_grad = True

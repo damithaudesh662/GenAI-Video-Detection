@@ -5,6 +5,11 @@ import numpy as np
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
+# Project root (Depth-Anything-V2). Checkpoint path must not depend on cwd —
+# extract_logits_depth.py prepends this folder to sys.path, so this module is
+# often imported from a different working directory.
+ROOT = Path(__file__).resolve().parent
+
 from depth_anything_v2.dpt import DepthAnythingV2
 
 DEVICE = (
@@ -26,7 +31,7 @@ BATCH_SIZE = 8    # tune to VRAM: 4 for <6 GB, 8 for 8 GB, 16 for 12+ GB
 INPUT_SIZE = 518
 
 model = DepthAnythingV2(**model_configs[encoder])
-ckpt_path = f'checkpoints/depth_anything_v2_{encoder}.pth'
+ckpt_path = ROOT / f'checkpoints/depth_anything_v2_{encoder}.pth'
 state = torch.load(ckpt_path, map_location='cpu', weights_only=True)
 model.load_state_dict(state)
 model = model.to(DEVICE).eval()
@@ -116,6 +121,12 @@ def process_video_folder(input_dir, output_dir):
 # keep the single-image helper for scripts that import it directly
 def process_image(img_path, out_path):
     _run_batch([Path(img_path)], [Path(out_path)])
+
+
+# Alias expected by extract_logits_depth.py (and gen_ai_detector/depth_gen.py).
+# ROOT/depth_gen.py takes priority on sys.path when running from gen_ai_detector/,
+# so both names must be available here.
+make_depthmaps = process_video_folder
 
 
 if __name__ == '__main__':

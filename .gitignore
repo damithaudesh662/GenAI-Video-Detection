@@ -142,5 +142,3 @@ dist/
 # Fusion related files
 # -------------------------
 
-Geometric_Clues/Depth-Anything-V2/gen_ai_detector/extract_logits_depth.py
-

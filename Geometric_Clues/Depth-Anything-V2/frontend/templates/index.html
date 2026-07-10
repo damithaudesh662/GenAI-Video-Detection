@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GenAIVideo - Geometric Detection</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0a0b10;
+        --card: rgba(255, 255, 255, 0.05);
+        --accent: #6366f1;
+        --accent-glow: rgba(99, 102, 241, 0.3);
+        --text: #e2e8f0;
+        --success: #10b981;
+        --error: #ef4444;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Outfit", sans-serif;
+        overflow-x: hidden;
+        background-image: radial-gradient(
+          circle at 50% 50%,
+          #1a1c2e 0%,
+          #0a0b10 100%
+        );
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 40px 20px;
+      }
+
+      header {
+        text-align: center;
+        margin-bottom: 60px;
+      }
+
+      h1 {
+        font-size: 3rem;
+        font-weight: 800;
+        letter-spacing: -1px;
+        background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 10px;
+      }
+
+      .subtitle {
+        color: #94a3b8;
+        font-size: 1.1rem;
+      }
+
+      .main-grid {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 30px;
+        align-items: start;
+      }
+
+      .card {
+        background: var(--card);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        padding: 30px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      }
+
+      .mode-selector {
+        display: flex;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 5px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+      }
+
+      .mode-btn {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        background: none;
+        color: #94a3b8;
+        cursor: pointer;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s;
+      }
+
+      .mode-btn.active {
+        background: var(--accent);
+        color: white;
+      }
+
+      .upload-area {
+        border: 2px dashed rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        padding: 40px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .upload-area:hover {
+        border-color: var(--accent);
+        background: rgba(99, 102, 241, 0.05);
+      }
+
+      .upload-icon {
+        font-size: 40px;
+        margin-bottom: 15px;
+        display: block;
+      }
+
+      #file-input {
+        display: none;
+      }
+
+      .btn {
+        background: var(--accent);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        margin-top: 20px;
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+        box-shadow: 0 0 20px var(--accent-glow);
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 30px var(--accent-glow);
+      }
+
+      .btn:disabled {
+        background: #475569;
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+
+      .status-box {
+        margin-top: 30px;
+        display: none;
+      }
+
+      .progress-bar {
+        height: 6px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-top: 10px;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: var(--accent);
+        width: 0%;
+        transition: width 0.3s ease;
+      }
+
+      .result-panel {
+        min-height: 500px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+      }
+
+      .result-img {
+        max-width: 100%;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 20px;
+      }
+
+      .badge {
+        padding: 8px 16px;
+        border-radius: 100px;
+        font-weight: 700;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        display: inline-block;
+      }
+
+      .badge-ai {
+        background: rgba(239, 68, 68, 0.2);
+        color: #f87171;
+        border: 1px solid #ef4444;
+      }
+      .badge-real {
+        background: rgba(16, 185, 129, 0.2);
+        color: #34d399;
+        border: 1px solid #10b981;
+      }
+
+      .confidence {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 5px 0;
+      }
+
+      .batch-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        text-align: left;
+      }
+
+      .batch-table th,
+      .batch-table td {
+        padding: 15px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .batch-table th {
+        color: #94a3b8;
+        font-weight: 400;
+        font-size: 0.9rem;
+      }
+
+      .preview-small {
+        width: 120px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+
+      .preview-small:hover {
+        transform: scale(1.1);
+      }
+
+      .empty-state {
+        opacity: 0.3;
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+
+      .loading-text {
+        animation: pulse 1.5s infinite;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Geometric Pulse Agent</h1>
+        <p class="subtitle">3D CNN Spatiotemporal Forensic Analysis</p>
+      </header>
+
+      <div class="main-grid">
+        <div class="sidebar">
+          <div class="card">
+            <div class="mode-selector">
+              <button class="mode-btn active" id="mode-single">
+                Single Video
+              </button>
+              <button class="mode-btn" id="mode-batch">Batch Folder</button>
+            </div>
+
+            <h3>Inference Control</h3>
+            <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 25px">
+              Upload data for consistency analysis.
+            </p>
+
+            <div class="upload-area" id="drop-zone">
+              <span class="upload-icon">📁</span>
+              <p id="file-name">Drag & Drop Video or Click</p>
+              <input type="file" id="file-input" accept="video/*" />
+            </div>
+
+            <button class="btn" id="analyze-btn" disabled>
+              Start Analysis
+            </button>
+
+            <div class="status-box" id="status-box">
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  font-size: 0.9rem;
+                "
+              >
+                <span id="status-text" class="loading-text">Processing...</span>
+                <span id="progress-percent">0%</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="result-area">
+          <div class="card result-panel" id="result-panel">
+            <div class="empty-state" id="empty-state">
+              <img
+                src="https://cdni.iconscout.com/illustration/premium/thumb/geometric-background-illustration-download-in-svg-png-gif-formats--shapes-wallpaper-pattern-banner-texture-pack-miscellaneous-illustrations-4076211.png"
+                width="200"
+                style="filter: grayscale(1); margin-bottom: 20px"
+              />
+              <p>Waiting for forensic data ingestion...</p>
+            </div>
+
+            <!-- Single Result View -->
+            <div id="result-content" style="display: none; width: 100%">
+              <div id="result-badge" class="badge">Result</div>
+              <div class="confidence" id="result-conf">--%</div>
+              <p style="color: #94a3b8; margin-bottom: 30px">
+                Explainable Heatmap
+              </p>
+              <img src="" alt="Result" class="result-img" id="result-img" />
+              <button
+                class="btn"
+                style="background: rgba(255, 255, 255, 0.1); box-shadow: none"
+                onclick="resetUI()"
+              >
+                Test Next Video
+              </button>
+            </div>
+
+            <!-- Batch Result View -->
+            <div id="batch-content" style="display: none; width: 100%">
+              <h2 style="margin-bottom: 20px">Batch Analysis Report</h2>
+              <table class="batch-table" id="results-table">
+                <thead>
+                  <tr>
+                    <th>Video File</th>
+                    <th>Prediction</th>
+                    <th>Confidence</th>
+                    <th>Heatmap Proof</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+              <button
+                class="btn"
+                style="
+                  background: rgba(255, 255, 255, 0.1);
+                  box-shadow: none;
+                  margin-top: 30px;
+                "
+                onclick="resetUI()"
+              >
+                New Batch Test
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal for full-size heatmap -->
+    <div
+      id="img-modal"
+      style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+      "
+      onclick="this.style.display='none'"
+    >
+      <img
+        id="modal-img"
+        style="max-width: 90%; max-height: 90%; border-radius: 10px"
+      />
+    </div>
+
+    <script>
+      const dropZone = document.getElementById("drop-zone");
+      const fileInput = document.getElementById("file-input");
+      const fileName = document.getElementById("file-name");
+      const analyzeBtn = document.getElementById("analyze-btn");
+      const statusBox = document.getElementById("status-box");
+      const progressFill = document.getElementById("progress-fill");
+      const statusText = document.getElementById("status-text");
+
+      const modeSingle = document.getElementById("mode-single");
+      const modeBatch = document.getElementById("mode-batch");
+
+      const resImg = document.getElementById("result-img");
+      const resConf = document.getElementById("result-conf");
+      const resBadge = document.getElementById("result-badge");
+      const resultContent = document.getElementById("result-content");
+      const batchContent = document.getElementById("batch-content");
+      const emptyState = document.getElementById("empty-state");
+      const resultsTable = document.getElementById("results-table").querySelector("tbody");
+
+      let isBatchMode = false;
+      let selectedFiles = [];
+
+      modeSingle.onclick = () => {
+        isBatchMode = false;
+        modeSingle.classList.add("active");
+        modeBatch.classList.remove("active");
+        fileInput.webkitdirectory = false;
+        fileInput.multiple = false;
+        resetUI();
+      };
+
+      modeBatch.onclick = () => {
+        isBatchMode = true;
+        modeBatch.classList.add("active");
+        modeSingle.classList.remove("active");
+        fileInput.webkitdirectory = true;
+        fileInput.multiple = true;
+        resetUI();
+      };
+
+      dropZone.onclick = () => fileInput.click();
+
+      fileInput.onchange = (e) => {
+        if (e.target.files.length > 0) {
+          selectedFiles = Array.from(e.target.files);
+          fileName.textContent = isBatchMode
+            ? `${selectedFiles.length} files selected`
+            : selectedFiles[0].name;
+          analyzeBtn.disabled = false;
+        }
+      };
+
+      analyzeBtn.onclick = async () => {
+        if (selectedFiles.length === 0) return;
+
+        const formData = new FormData();
+        if (isBatchMode) {
+          selectedFiles.forEach((f) => formData.append("videos", f));
+        } else {
+          formData.append("video", selectedFiles[0]);
+        }
+
+        analyzeBtn.disabled = true;
+        statusBox.style.display = "block";
+        updateProgress(10, "Streaming Data...");
+
+        const endpoint = isBatchMode ? "/batch" : "/upload";
+
+        try {
+          // Simulate pipeline steps
+          setTimeout(() => updateProgress(30, "Synthesizing Geometric Cues..."), 1000);
+          setTimeout(() => updateProgress(60, "Processing 3D Convolutional Layers..."), 3000);
+
+          const response = await fetch(endpoint, {
+            method: "POST",
+            body: formData,
+          });
+
+          const data = await response.json();
+
+          if (data.status === "success") {
+            updateProgress(100, "All Predictions Completed");
+            setTimeout(() => {
+              if (isBatchMode) showBatchResults(data.results);
+              else showSingleResult(data);
+            }, 500);
+          } else {
+            alert("Error: " + data.message);
+            resetUI();
+          }
+        } catch (err) {
+          alert("Connection Error");
+          resetUI();
+        }
+      };
+
+      function updateProgress(p, text) {
+        progressFill.style.width = p + "%";
+        document.getElementById("progress-percent").textContent = p + "%";
+        statusText.textContent = text;
+
+        if (p === 100) {
+          statusText.classList.remove("loading-text");
+          statusText.style.color = "var(--success)";
+        } else {
+          statusText.classList.add("loading-text");
+          statusText.style.color = "#94a3b8";
+        }
+      }
+
+      function showSingleResult(data) {
+        emptyState.style.display = "none";
+        batchContent.style.display = "none";
+        resultContent.style.display = "block";
+        resImg.src = data.image_url;
+        resImg.style.display = "block";
+        resConf.textContent = data.confidence;
+
+        resBadge.className =
+          "badge " + (data.prediction === "Gen AI" ? "badge-ai" : "badge-real");
+        resBadge.textContent = data.prediction;
+      }
+
+      function showBatchResults(results) {
+        emptyState.style.display = "none";
+        resultContent.style.display = "none";
+        batchContent.style.display = "block";
+        resultsTable.innerHTML = "";
+
+        results.forEach((res) => {
+          const row = document.createElement("tr");
+          const badgeClass = res.prediction === "Gen AI" ? "badge-ai" : "badge-real";
+
+          row.innerHTML = `
+                    <td style="font-weight: 600;">${res.video}</td>
+                    <td><span class="badge ${badgeClass}">${res.prediction}</span></td>
+                    <td style="font-weight: 800; font-size: 1.1rem;">${res.confidence}</td>
+                    <td><img src="${res.image_url}" class="preview-small" onclick="openModal('${res.image_url}')"></td>
+                `;
+          resultsTable.appendChild(row);
+        });
+      }
+
+      function openModal(url) {
+        document.getElementById("modal-img").src = url;
+        document.getElementById("img-modal").style.display = "flex";
+      }
+
+      async function resetUI() {
+        try {
+          // Call server-side cleanup
+          await fetch("/clear", { method: "POST" });
+        } catch (err) {
+          console.error("Cleanup failed", err);
+        }
+
+        // Hard reset of all UI elements
+        selectedFiles = [];
+        fileInput.value = "";
+        fileName.textContent = isBatchMode
+          ? "Drag & Drop Folder"
+          : "Drag & Drop Video or Click";
+        analyzeBtn.disabled = true;
+        statusBox.style.display = "none";
+        resultContent.style.display = "none";
+        batchContent.style.display = "none";
+        emptyState.style.display = "block";
+        resImg.style.display = "none";
+        resImg.src = "";
+        updateProgress(0, "");
+      }
+    </script>
+  </body>
+</html>

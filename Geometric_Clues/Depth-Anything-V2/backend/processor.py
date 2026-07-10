@@ -8,8 +8,7 @@ import cv2
 import shutil
 from pathlib import Path
 import matplotlib
-matplotlib.use('Agg') # Set non-interactive backend
-import matplotlib.pyplot as plt
+matplotlib.use('Agg')
 from concurrent.futures import ThreadPoolExecutor
 
 # Add the project root to sys.path to import existing modules
@@ -19,16 +18,15 @@ sys.path.append(str(ROOT))
 # Import existing functional components
 from gen_ai_detector.process_video import process_video
 from depth_anything_v2.dpt import DepthAnythingV2
+from gen_ai_detector.explainability_toolkit import generate_layered_report
 
 # --------------------------------------------------
 # CONFIGURATION
 # --------------------------------------------------
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-MEAN = torch.tensor([0.43216, 0.394666, 0.37645], device=DEVICE).view(1, 3, 1, 1, 1)
-STD  = torch.tensor([0.22803, 0.22145, 0.216989], device=DEVICE).view(1, 3, 1, 1, 1)
 
 # Depth Anything V2 Batch Config
-DEPTH_BATCH_SIZE = 8 
+DEPTH_BATCH_SIZE = 8
 
 model_configs = {
     "vits": {"encoder": "vits", "features": 64,  "out_channels": [48, 96, 192, 384]},
@@ -36,44 +34,6 @@ model_configs = {
     "vitl": {"encoder": "vitl", "features": 256, "out_channels": [256, 512, 1024, 1024]},
     "vitg": {"encoder": "vitg", "features": 384, "out_channels": [1536, 1536, 1536, 1536]},
 }
-
-# --------------------------------------------------
-# GradCAM3D Implementation
-# --------------------------------------------------
-class GradCAM3D:
-    def __init__(self, model, target_layer):
-        self.model = model
-        self.target_layer = target_layer
-        self.gradients = None
-        self.activations = None
-        self.target_layer.register_forward_hook(self.save_activation)
-        self.target_layer.register_full_backward_hook(self.save_gradient)
-
-    def save_activation(self, module, input, output):
-        self.activations = output
-
-    def save_gradient(self, module, grad_input, grad_output):
-        self.gradients = grad_output[0]
-
-    def generate_heatmap(self, input_tensor, class_idx=None):
-        self.model.eval()
-        logits = self.model(input_tensor)
-        if class_idx is None:
-            class_idx = logits.argmax(dim=1).item()
-        self.model.zero_grad()
-        class_loss = logits[0, class_idx]
-        class_loss.backward()
-        pooled_gradients = torch.mean(self.gradients, dim=[0, 2, 3, 4])
-        for i in range(self.activations.shape[1]):
-            self.activations[:, i, :, :, :] *= pooled_gradients[i]
-        heatmap = torch.mean(self.activations, dim=1).squeeze()
-        heatmap = torch.relu(heatmap)
-        if len(heatmap.shape) == 3:
-            heatmap = heatmap.unsqueeze(0).unsqueeze(0)
-            heatmap = torch.nn.functional.interpolate(heatmap, size=(16, 7, 7), mode='trilinear', align_corners=False)
-            heatmap = heatmap.squeeze()
-        heatmap /= (torch.max(heatmap) + 1e-8)
-        return heatmap.cpu().detach().numpy(), class_idx, torch.softmax(logits, dim=1)[0].cpu().detach().numpy()
 
 # --------------------------------------------------
 # Optimized Depth Generation
@@ -166,40 +126,29 @@ def process_single_video(video_path, model_path, output_dir):
         depth_model = get_depth_model()
         optimized_make_depthmaps(depth_model, frame_dir, depth_dir)
 
-        # 3. Model Inference and Explainability
+        # 3. Inference + layered explainability (delegated to explainability_toolkit)
         classifier = get_classifier_model(model_path)
-        target_layer = classifier.layer4[1].conv2[0]
-        cam = GradCAM3D(classifier, target_layer)
+        report = generate_layered_report(
+            depth_dir=str(depth_dir),
+            rgb_dir=str(frame_dir),
+            output_dir=str(output_dir),
+            model=classifier,
+            video_name=f"result_{video_path.stem}",
+        )
 
-        depth_frames = sorted([p for p in depth_dir.iterdir() if p.suffix.lower() in {'.png', '.jpg', '.jpeg'}])
-        if len(depth_frames) < 16: depth_frames += [depth_frames[-1]] * (16 - len(depth_frames))
-        
-        depth_imgs = [cv2.resize(cv2.cvtColor(cv2.imread(str(f)), cv2.COLOR_BGR2RGB), (112,112))/255.0 for f in depth_frames[:16]]
-        clip = np.transpose(np.stack(depth_imgs, axis=0), (3,0,1,2))
-        input_tensor = (torch.from_numpy(clip).unsqueeze(0).to(DEVICE).float() - MEAN) / STD
-        input_tensor.requires_grad = True
-
-        heatmaps, pred_idx, probs = cam.generate_heatmap(input_tensor)
-        
-        # 4. Save Final Heatmap Output
-        result_label, confidence = "Gen AI" if pred_idx == 1 else "Real", probs[pred_idx] * 100
-        mid_idx = 8
-        orig_frame = cv2.cvtColor(cv2.imread(str(sorted(list(frame_dir.iterdir()))[mid_idx])), cv2.COLOR_BGR2RGB)
-        depth_frame = cv2.cvtColor(cv2.imread(str(depth_frames[mid_idx])), cv2.COLOR_BGR2RGB)
-        
-        h, w, _ = depth_frame.shape
-        heatmap_colored = cv2.cvtColor(cv2.applyColorMap(np.uint8(255 * cv2.resize(heatmaps[mid_idx], (w, h))), cv2.COLORMAP_JET), cv2.COLOR_BGR2RGB)
-        overlay = cv2.addWeighted(depth_frame, 0.6, heatmap_colored, 0.4, 0)
-
-        fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-        axes[0].imshow(orig_frame); axes[0].set_title("Input RGB"); axes[0].axis('off')
-        axes[1].imshow(depth_frame); axes[1].set_title("Geometric Cue"); axes[1].axis('off')
-        axes[2].imshow(overlay); axes[2].set_title(f"Feedback ({result_label} {confidence:.1f}%)"); axes[2].axis('off')
-        
-        vis_path = output_dir / f"result_{video_path.stem}.png"
-        plt.tight_layout(); plt.savefig(vis_path); plt.close()
-
-        return {"video": video_path.name, "prediction": result_label, "confidence": f"{confidence:.2f}%", "heatmap_path": str(vis_path)}
+        # 'heatmap_path' kept for backward compatibility with app.py
+        return {
+            "video":              video_path.name,
+            "prediction":         report["prediction"],
+            "confidence":         report["confidence"],
+            "heatmap_path":       report["summary_panel_path"],
+            "temporal_grid_path": report["temporal_grid_path"],
+            "temporal_gif_path":  report["temporal_gif_path"],
+            "prob_genai":         report["prob_genai"],
+            "prob_real":          report["prob_real"],
+            "explanation":        report["explanation"],
+            "features":           report["features"],
+        }
     except Exception as e:
         print(f"Error processing {video_path.name}: {e}"); return {"video": video_path.name, "error": str(e)}
     finally:

@@ -1,0 +1,1 @@
+python gen_ai_detector/explainability_toolkit.py --model trained_detection_models/best_r3d18_depthmaps_full.pt --depth-dir output/depthmaps --rgb-dir output/frames --output-dir explainability_output --name 10

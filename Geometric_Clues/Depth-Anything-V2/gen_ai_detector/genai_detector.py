@@ -16,13 +16,13 @@ print(f"Confidence: Real={prob[0]:.2%}, Gen AI={prob[1]:.2%}")
 # Clean up output folder after prediction
 print("\n   Cleaning up output folder...")
 if os.path.exists("output/frames"):
-    shutil.rmtree("output/frames")
-    os.makedirs("output/frames")
+    # shutil.rmtree("output/frames")
+    # os.makedirs("output/frames")
     print("✓ Cleared output/frames")
 
 if os.path.exists("output/depthmaps"):
-    shutil.rmtree("output/depthmaps")
-    os.makedirs("output/depthmaps")
+    # shutil.rmtree("output/depthmaps")
+    # os.makedirs("output/depthmaps")
     print("✓ Cleared output/depthmaps")
 
 print("   Cleanup complete! Ready for next video.")
